@@ -62,8 +62,8 @@ app.use(express.json());
 // ---- Routes ----
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
-app.use('/api/data', require('./routes/data'));
-app.use('/api/patients', require('./routes/patientRoutes'));
+// app.use('/api/data', require('./routes/data'));
+// app.use('/api/patients', require('./routes/patientRoutes'));
 
 // Test endpoint to confirm env setup
 app.get('/test-csv-key', (req, res) => {

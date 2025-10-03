@@ -1,3 +1,5 @@
+
+
 import { useState, useEffect, FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Heart, KeyRound } from 'lucide-react';
@@ -5,7 +7,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import { useAuth } from '../hooks/useAuth';
-import { UserRole,LoginCredentials } from '../types';
+import { UserRole, LoginCredentials } from '../types';
 
 interface LocationState {
   role?: UserRole;
@@ -26,7 +28,7 @@ function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'login' | 'mfa'>('login');
 
-  // ✅ Clear localStorage on component mount
+  // Clear localStorage on mount
   useEffect(() => {
     localStorage.clear();
   }, []);
@@ -40,42 +42,46 @@ function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    if ((role === 'doctor' || role === 'patient') && step === 'login') {
-      console.log('Trigger MFA for:', formData.loginInput);
-      setStep('mfa');
+    // Doctor/Patient flow with MFA
+    if ((role === 'doctor' || role === 'patient')) {
+      const loginPayload: LoginCredentials = {
+        loginInput: formData.loginInput,
+        password: formData.password,
+        mfaCode: step === 'mfa' ? mfaCode : undefined,
+      };
+
+      const success = await login(loginPayload);
+
+      if (step === 'login') {
+        // MFA just sent
+        setStep('mfa');
+        setIsLoading(false);
+        return;
+      }
+
+      if (success) {
+      if (role === 'doctor') navigate('/doctor');
+     else if (role === 'patient') navigate('/patient');
+}
+
       setIsLoading(false);
       return;
     }
 
-    // let demoEmail = '';
-    // let demoPassword = '';
-    
-    // if (role === 'admin') {
-    //   demoEmail = 'admin@hospital.com';
-    //   demoPassword = 'admin123';
-    // } else if (role === 'doctor' || role === 'patient') {
-    //   demoEmail = 'doctor@hospital.com';
-    //   demoPassword = 'doctor123';
-    // } else if (role === 'researcher') {
-    //   demoEmail = 'researcher@hospital.com';
-    //   demoPassword = 'research123';
-    // }
-
-   const loginPayload: LoginCredentials = {
-  loginInput: formData.loginInput,   // could be email or username
-  password: formData.password,
-  mfaCode: role !== "admin" ? mfaCode : undefined
-};
-
-const success = await login(loginPayload);
-
+    // Admin / Researcher flow
+    const loginPayload: LoginCredentials = {
+      loginInput: formData.loginInput,
+      password: formData.password,
+    };
+    const success = await login(loginPayload);
 
     if (success) {
       if (role === 'admin') navigate('/admin');
-      else if (role === 'doctor' || role === 'patient') navigate('/doctor');
       else if (role === 'researcher') navigate('/researcher');
       else navigate('/');
     }
+
+    setIsLoading(false);
   };
   
   const getRoleTitle = () => {
@@ -111,11 +117,11 @@ const success = await login(loginPayload);
                 type="text"
                 autoComplete="off"
                 required
-                 placeholder={
-                role === 'admin'
-                  ? "Enter your username (IAM) + email required at registration"
-                  : "Enter your email"
-              }
+                placeholder={
+                  role === 'admin'
+                    ? "Enter your username (IAM) + email required at registration"
+                    : "Enter your email"
+                }
                 value={formData.loginInput}
                 onChange={handleChange}
               />
@@ -166,11 +172,10 @@ const success = await login(loginPayload);
               {role === 'doctor' || role === 'patient' ? (
                 step === 'login' ? (
                   <Button
-                    type="button"
+                    type="submit"
                     variant="primary"
                     fullWidth
                     isLoading={isLoading}
-                    onClick={() => setStep('mfa')}
                     leftIcon={<KeyRound size={16} />}
                   >
                     Get MFA
@@ -218,5 +223,3 @@ const success = await login(loginPayload);
 }
 
 export default LoginPage;
-
-

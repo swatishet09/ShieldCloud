@@ -1,77 +1,102 @@
 
-// // utils/sendEmail.js
+
+
+
 // const nodemailer = require("nodemailer");
 
-// // Log SMTP settings immediately
-// console.log("Loaded SMTP settings:", {
+// // Gmail transporter
+// const transporter = nodemailer.createTransport({
 //   host: process.env.SMTP_HOST,
-//   port: process.env.SMTP_PORT,
-//   user: process.env.SMTP_USER,
-//   passSet: !!process.env.SMTP_PASS, // just to check if password exists
+//   port: Number(process.env.SMTP_PORT) || 587,
+//   secure: Number(process.env.SMTP_PORT) === 465, // true for 465, false for 587
+//   auth: {
+//     user: process.env.SMTP_USER,
+//     pass: process.env.SMTP_PASS,
+//   },
+//   pool: true,
+//   maxConnections: 3,
+//   maxMessages: 100,
 // });
 
-// async function sendEmail(to, subject, text) {
+// // Verify transporter on startup
+// (async () => {
 //   try {
-//     if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-//       console.log(`[DEV EMAIL] Missing SMTP config. Logging instead of sending.`);
-//       console.log(`To: ${to} | Subject: ${subject} | Text: ${text}`);
-//       return;
-//     }
+//     await transporter.verify();
+//     console.log("✅ Gmail SMTP ready");
+//   } catch (err) {
+//     console.error("❌ Gmail SMTP connection failed", err);
+//   }
+// })();
 
-//     console.log("Creating transporter...");
-//     const transporter = nodemailer.createTransport({
-//       host: process.env.SMTP_HOST,
-//       port: Number(process.env.SMTP_PORT) || 587,
-//       secure: false, // true for 465, false for other ports
-//       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-//     });
-
-//     console.log("Sending email...");
-//     await transporter.sendMail({
-//       from: process.env.SMTP_USER,
+// async function sendEmail(to, subject, body) {
+//   try {
+//     const info = await transporter.sendMail({
+//       from: process.env.FROM_EMAIL,
 //       to,
 //       subject,
-//       text,
+//       text: body,
 //     });
-
-//     console.log(`✅ Email successfully sent to ${to}`);
+//     console.log("✅ MFA email sent:", info.messageId);
+//     return true;
 //   } catch (err) {
-//     console.error("❌ SendEmail Error:", err);
+//     console.error("❌ MFA email failed:", err);
+//     return false;
 //   }
 // }
 
-// module.exports = sendEmail;
+// module.exports = { sendEmail };
 
 
+
+
+// utils/sendEmail.js
 const nodemailer = require("nodemailer");
 
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: Number(process.env.SMTP_PORT) === 465, // true if 465, else false
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+  pool: true,
+  maxConnections: 3,
+  maxMessages: 100,
+});
+
+// Verify transporter on startup
+(async () => {
+  try {
+    await transporter.verify();
+    console.log("✅ Gmail SMTP ready");
+  } catch (err) {
+    console.error("❌ Gmail SMTP connection failed", err);
+  }
+})();
+
+/**
+ * Send an email
+ * @param {string} to - recipient email
+ * @param {string} subject - subject line
+ * @param {string} body - plain text body
+ * @returns {Promise<boolean>}
+ */
 async function sendEmail(to, subject, body) {
   try {
-    // Create SMTP transporter (SES)
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT || 587,
-      secure: false, // TLS (587) - use true only if port 465
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
-    // Send the email
     const info = await transporter.sendMail({
       from: process.env.FROM_EMAIL,
       to,
       subject,
       text: body,
     });
-
-    console.log("Email sent:", info.messageId);
+    console.log("📧 MFA email sent:", info.messageId, "to:", to);
     return true;
   } catch (err) {
-    console.error("Email send failed:", err);
+    console.error("❌ MFA email failed:", err);
     return false;
   }
 }
 
-module.exports = sendEmail;
+// ✅ Export correctly
+module.exports = { sendEmail };
