@@ -1,6 +1,7 @@
 import api from "./axios";
 import axios from 'axios';
-// Upload manual entry
+
+// ------------------ Manual Entry ------------------
 export const uploadManualEntry = async (entry: any) => {
   return api.post("/store", {
     type: "manual",
@@ -9,7 +10,7 @@ export const uploadManualEntry = async (entry: any) => {
   });
 };
 
-// Upload CSV file
+// ------------------ CSV File Upload ------------------
 export const uploadCSV = async (file: File) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -31,14 +32,37 @@ export const uploadCSV = async (file: File) => {
   });
 };
 
-const API_BASE = "https://un77q4pfzh.execute-api.ap-south-1.amazonaws.com"; // replace with your Lambda API Gateway URL
+// ------------------ PDF File Upload ------------------
+export const uploadPDF = async (file: File) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64Data = reader.result?.toString().split(",")[1];
+        const response = await api.post("/store", {
+          type: "file",
+          fileName: file.name,
+          fileData: base64Data,
+        });
+        resolve(response.data);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
+// ------------------ Fetch Noisy Data ------------------
+const API_BASE = "https://un77q4pfzh.execute-api.ap-south-1.amazonaws.com";
 
 export const fetchNoisyData = async (healthIssue: string) => {
   try {
     const response = await axios.get(`${API_BASE}/dev`, {
       params: { healthIssue },
     });
-    return response.data; // expected to return CSV content or JSON
+    return response.data;
   } catch (error) {
     console.error("Error fetching noisy data:", error);
     throw error;
